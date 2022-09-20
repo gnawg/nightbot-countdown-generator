@@ -1,0 +1,19 @@
+{
+  "name": "nightbot-countdown-generator",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gnawg/nightbot-countdown-generator.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gnawg/nightbot-countdown-generator/issues"
+  },
+  "homepage": "https://github.com/gnawg/nightbot-countdown-generator#readme"
+}
