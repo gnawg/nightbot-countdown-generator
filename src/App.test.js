@@ -1,8 +1,5 @@
-import { render, screen } from '@testing-library/react';
-import App from './App';
+import { render, screen } from "@testing-library/react";
+import { DateTime } from "luxon";
+import App from "./App";
 
-test('renders learn react link', () => {
-  render(<App />);
-  const linkElement = screen.getByText(/learn react/i);
-  expect(linkElement).toBeInTheDocument();
-});
+const inputTime = DateTime.fromISO("2022-10-22T17:00:00", { zone: "PST8PDT" });
