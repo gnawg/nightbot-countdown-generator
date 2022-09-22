@@ -42,31 +42,34 @@ function singular(str) {
 }
 function DatetimeToCountdown(dt: DateTime): String {
   const dur = dt.diffNow(units);
-  const ago = dur.valueOf() < 0;
-  console.log(dur);
+  const ago = Math.round(dur.valueOf() / 1000) < 0;
 
-  const str = units.reduce(
-    (str, unit) =>
-      dur[unit]
-        ? `${str} ${Math.abs(Math.round(dur[unit]))} ${
-            dur[unit] === 1 ? singular(unit) : unit
-          }`
-        : str,
-    ""
-  );
+  let str = units.reduce((str, unit) => {
+    if (!dur[unit]) return str;
+    const qty = `${Math.abs(Math.round(dur[unit]))}`;
+    const u = dur[unit] === 1 ? singular(unit) : unit;
+    return `${str} ${qty} ${u}`;
+  }, "");
+
+  str = str ? str : "0 seconds";
 
   return `${str}${ago ? " ago" : ""}`;
 }
 
+const syszone = new SystemZone().name;
+
 function App() {
   const [targetTimezone, setTargetTimezone] = useState(
-    localStorage.timezone || new SystemZone().name
+    localStorage.timezone || syszone
   );
+  Settings.defaultZone = targetTimezone;
+
   const [targetTime, setTargetTime] = useState(DateTime.now());
-  console.log(targetTime.zoneName);
+
   useEffect(() => {
     localStorage.timezone = targetTimezone;
     Settings.defaultZone = targetTimezone;
+    setTargetTime(targetTime.setZone(targetTimezone));
   }, [targetTimezone]);
 
   return (
@@ -80,12 +83,9 @@ function App() {
             <title>Nightbot Countdown Tool</title>
           </Toolbar>
         </AppBar>
-        {/* {targetTimezone}
-        {targetTime} */}
-        {DatetimeToCountdown(targetTime)}
         <Container component="main" maxWidth="sm" sx={{ mt: 2 }}>
           <Grid container spacing={3}>
-            {/* <Grid item xs={12} sm={6}>
+            <Grid item xs={12} sm={6}>
               <Autocomplete
                 disablePortal
                 id="timezone-select"
@@ -94,8 +94,12 @@ function App() {
                 renderInput={(params) => {
                   return <TextField {...params} label="Timezone" />;
                 }}
+                value={targetTimezone}
+                onChange={(e, val) => {
+                  setTargetTimezone(val || syszone);
+                }}
               />
-            </Grid> */}
+            </Grid>
             <Grid item xs={12} sm={6}>
               <DateTimePicker
                 renderInput={(props) => <TextField {...props} />}
@@ -115,7 +119,7 @@ function App() {
                 name="script"
                 fullWidth
                 variant="standard"
-                //value={value.toNow()}
+                value={DatetimeToCountdown(targetTime)}
               />
             </Grid>
             {/* etc */}
