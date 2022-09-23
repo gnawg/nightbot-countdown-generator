@@ -6,7 +6,9 @@ import {
   Autocomplete,
   Box,
   Container,
+  FormControlLabel,
   Grid,
+  Switch,
   TextField,
   Toolbar,
   Typography,
@@ -22,8 +24,10 @@ import {
   Duration,
   Settings,
   Interval,
+  Info
 } from "luxon";
 import { Timezones } from "./constants";
+import RestoreIcon from "@mui/icons-material/Restore";
 
 const theme = createTheme({
   /*   palette: {
@@ -36,12 +40,15 @@ const theme = createTheme({
   }, */
 });
 
+const SYSZONE = new SystemZone().name;
+
 const units = ["years", "months", "days", "hours", "minutes", "seconds"];
+
 function singular(str) {
   return str.slice(0, -1);
 }
-function DatetimeToCountdown(dt: DateTime): String {
-  const dur = dt.diffNow(units);
+
+function formatCountdown(dur) {
   const ago = Math.round(dur.valueOf() / 1000) < 0;
 
   let str = units.reduce((str, unit) => {
@@ -56,21 +63,77 @@ function DatetimeToCountdown(dt: DateTime): String {
   return `${str}${ago ? " ago" : ""}`;
 }
 
-const syszone = new SystemZone().name;
-
-function App() {
-  const [targetTimezone, setTargetTimezone] = useState(
-    localStorage.timezone || syszone
-  );
-  Settings.defaultZone = targetTimezone;
-
-  const [targetTime, setTargetTime] = useState(DateTime.now());
+export function useTime(time = DateTime.now(), tz = localStorage.timezone || SYSZONE) {
+  const [targetTime, setTargetTime] = useState(time);
+  const [targetTimezone, setTargetTimezone] = useState(tz);
 
   useEffect(() => {
+    setTargetTime(targetTime.setZone(targetTimezone));
     localStorage.timezone = targetTimezone;
     Settings.defaultZone = targetTimezone;
-    setTargetTime(targetTime.setZone(targetTimezone));
-  }, [targetTimezone]);
+  }, [targetTime, targetTimezone]);
+
+  function handleSetTime(time){
+    if(time.isValid) setTargetTime(time)
+  }
+  function handleSetTimezone(tz){
+    if(Info.normalizeZone(tz).isValid) setTargetTimezone(tz)
+  }
+
+  return { targetTime, setTargetTime: handleSetTime, targetTimezone, setTargetTimezone: handleSetTimezone };
+}
+
+export function useCountdown(dt) {
+  const [duration, setDuration] = useState(DateTime.now().diffNow(units));
+
+  useEffect(() => {
+    setDuration(dt.diffNow(units)); //update immediately
+
+    const intervalId = setInterval(() => setDuration(dt.diffNow(units)), 1000); // also update once a second
+    return () => clearInterval(intervalId);
+  }, [dt]);
+
+  return [duration, setDuration];
+}
+
+export function useText() {
+  const [cmd, setCmd] = useState(localStorage.cmd || "");
+  const [pretext, setPretext] = useState(localStorage.pretext || "");
+  const [posttext, setPosttext] = useState(localStorage.posttext || "");
+  const [newCmd, setNewCmd] = useState(localStorage.newCmd==='true')
+
+  useEffect(()=>{
+    localStorage.cmd = cmd
+  }, [cmd])
+  useEffect(()=>{
+    localStorage.pretext = pretext
+  }, [pretext])
+  useEffect(()=>{
+    localStorage.posttext = posttext
+  }, [posttext])
+  useEffect(()=>{
+    console.log(localStorage)
+    localStorage.newCmd = newCmd
+  }, [newCmd])
+
+  return {cmd, setCmd, pretext, setPretext, posttext, setPosttext, newCmd, setNewCmd}
+}
+
+function App() {
+  const { targetTime, setTargetTime, targetTimezone, setTargetTimezone } =
+    useTime();
+  const {cmd, setCmd, pretext, setPretext, posttext, setPosttext, newCmd, setNewCmd} = useText()
+
+  const [duration] = useCountdown(targetTime);
+
+  const script = targetTime.isValid && targetTimezone
+  ? `$(countdown ${targetTime.toFormat(
+      // $(countdown Dec 25 2015 12:00:00 AM EST)
+      "MMM dd yyyy hh:mm:ss a"
+    )} ${targetTimezone})`
+  : "invalid!!"
+
+  const fullOutput = `!commands ${newCmd ? 'add' : 'edit'} ${pretext} ${script} ${posttext}`
 
   return (
     <ThemeProvider theme={theme}>
@@ -85,6 +148,7 @@ function App() {
         </AppBar>
         <Container component="main" maxWidth="sm" sx={{ mt: 2 }}>
           <Grid container spacing={3}>
+            {/* ----- */}
             <Grid item xs={12} sm={6}>
               <Autocomplete
                 disablePortal
@@ -96,8 +160,10 @@ function App() {
                 }}
                 value={targetTimezone}
                 onChange={(e, val) => {
-                  setTargetTimezone(val || syszone);
+                  setTargetTimezone(val || SYSZONE);
                 }}
+                clearIcon= <RestoreIcon />
+                clearText= "Reset to System"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
@@ -108,19 +174,74 @@ function App() {
                 onChange={(newValue) => {
                   setTargetTime(newValue);
                 }}
+                onError={(e, val) => {
+                  console.log(val);
+                }}
               />
             </Grid>
-            {/*  */}
 
-            <Grid item xs={12}>
+            <Grid item xs={12}><Typography variant='h6' component='h2'>Config</Typography></Grid>
+            <Grid item xs={8}>
               <TextField
-                required
-                id="script"
-                name="script"
-                fullWidth
-                variant="standard"
-                value={DatetimeToCountdown(targetTime)}
+
+              label="stream command"
+              id="command"
+              fullWidth
+              value={cmd}
+              onChange={(e)=>setCmd(e.target.value)}
               />
+              </Grid>
+              <Grid item xs={4}>
+              <FormControlLabel control={<Switch disabled={!cmd} checked={newCmd} onChange={(e)=>setNewCmd(e.target.checked)} />} label="New?" />
+              </Grid>
+
+              <Grid item xs={12}>
+              <TextField
+              id="pretext"
+              label="Pre-countdown text"
+              fullWidth
+              multiline
+              value={pretext}
+              onChange={(e)=>setPretext(e.target.value)}
+              />
+              </Grid>
+
+              <Grid item xs={12}>
+              <TextField
+                fullWidth
+                required
+                disabled
+                variant="outlined"
+                id="script"
+                label="Countdown script"
+                value={
+                  script
+                }
+              />
+            </Grid>
+
+              <Grid item xs={12}>
+              <TextField
+              id="posttext"
+              label="Post-countdown text"
+              fullWidth
+              multiline
+              value={posttext}
+              onChange={(e)=>setPosttext(e.target.value)}
+              />
+              </Grid>
+
+              <Grid item xs={12}><Typography variant='h6' component='h2'>Preview:</Typography></Grid>
+            <Grid item xs={12}>
+              <Typography><strong>You:</strong> <em>{fullOutput}</em></Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography><strong>Hapless Viewer:</strong> {cmd}</Typography>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography>
+                <strong>Nightbot:</strong> {pretext} {formatCountdown(duration)} {posttext}
+              </Typography>
             </Grid>
             {/* etc */}
             {/*
