@@ -47,10 +47,11 @@ function formatCountdown(dur) {
   const ago = Math.round(dur.valueOf() / 1000) < 0;
 
   let str = units.reduce((str, unit) => {
+    console.log(unit, str);
     if (!dur[unit]) return str;
     const qty = `${Math.abs(Math.round(dur[unit]))}`;
     const u = dur[unit] === 1 ? singular(unit) : unit;
-    return `${str} ${qty} ${u}`;
+    return str ? `${str} ${qty} ${u}` : `${qty} ${u}`;
   }, "");
 
   str = str ? str : "0 seconds";
@@ -174,10 +175,11 @@ function App() {
           // $(countdown Dec 25 2015 12:00:00 AM EST)
           "MMM dd yyyy hh:mm:ss a"
         )} ${targetTimezone})`
-      : "invalid!!";
+      : "invalid time!!";
 
-  const fullOutput = `!commands ${newCmd ? "add" : "edit"} ${cmd} ${
-    pretext + script + posttext
+  const fullOutput = `!commands ${
+    newCmd ? "add" : "edit"
+  } ${cmd} ${pretext}${script}${posttext}
   }`;
 
   return (
@@ -350,8 +352,8 @@ function App() {
             </Grid>
             <Grid item xs={12}>
               <Typography>
-                <strong>Nightbot:</strong> {pretext} {formatCountdown(duration)}
-                {posttext}
+                <strong>Nightbot: </strong>
+                {`${pretext}${formatCountdown(duration)}${posttext}`}
               </Typography>
             </Grid>
           </Grid>
