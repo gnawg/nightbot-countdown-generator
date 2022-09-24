@@ -10,7 +10,6 @@ import {
   Grid,
   Switch,
   TextField,
-  ToggleButton,
   ButtonGroup,
   Toolbar,
   Typography,
@@ -230,6 +229,9 @@ function App() {
                   return (
                     <Button
                       key={i}
+                      variant={
+                        targetTime.weekday === i + 1 ? "contained" : "outlined"
+                      }
                       onClick={() => {
                         const { year, month, day } = findNextWeekday(
                           i + 1
