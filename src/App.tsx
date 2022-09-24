@@ -67,11 +67,8 @@ export function useTime() {
     setTargetTime(targetTime?.setZone(targetTimezone));
     localStorage.timezone = targetTimezone;
     Settings.defaultZone = targetTimezone;
-  }, [targetTimezone]);
+  }, [targetTimezone, targetTime]);
 
-  function handleSetTime(time) {
-    if (time && time.isValid) setTargetTime(time);
-  }
   function handleSetTimezone(tz) {
     if (tz && Info.normalizeZone(tz).isValid) setTargetTimezone(tz);
   }
