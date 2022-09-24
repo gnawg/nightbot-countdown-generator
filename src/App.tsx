@@ -356,7 +356,7 @@ function App() {
           <iframe
             title="twitch-chat-embed"
             id="twitch-chat-embed"
-            src="https://www.twitch.tv/embed/etalyx/chat?parent=localhost&gnawg.github.io"
+            src="https://www.twitch.tv/embed/etalyx/chat?parent=localhost&parent=gnawg.github.io"
             height="500"
             width="350"
           ></iframe>
