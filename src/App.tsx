@@ -353,6 +353,12 @@ function App() {
               </Typography>
             </Grid>
           </Grid>
+          <iframe
+            id="twitch-chat-embed"
+            src="https://www.twitch.tv/embed/etalyx/chat?parent=localhost&gnawg.github.io"
+            height="500"
+            width="350"
+          ></iframe>
         </Container>
       </LocalizationProvider>
     </ThemeProvider>
