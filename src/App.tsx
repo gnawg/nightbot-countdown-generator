@@ -30,7 +30,7 @@ import {
 } from "luxon";
 import { Timezones } from "./constants";
 import RestoreIcon from "@mui/icons-material/Restore";
-import ContentCopyIcon from "@mui/icons-material/";
+import ContentCopyIcon from "@mui/icons-material/ContentCopy";
 
 const theme = createTheme({
   /*   palette: {
@@ -107,7 +107,7 @@ export function useCountdown(dt) {
 }
 
 export function useText() {
-  const [cmd, setCmd] = useState(localStorage.cmd || "");
+  const [cmd, setCmd] = useState(localStorage.cmd || "!stream");
   const [pretext, setPretext] = useState(
     localStorage.pretext ||
       "Can't you read? You think I'm some kind of time servant that will tell you the next scheduled stream is in "
@@ -169,6 +169,17 @@ function App() {
     (num) => (DateTime.now().weekday + num - 1) % 7
   );
 
+  const TIME_HOTKEYS = [
+    { hour: 5 + 12, minute: "00", second: 0 },
+    { hour: 5 + 12, minute: "30", second: 0 },
+    { hour: 6 + 12, minute: "00", second: 0 },
+    { hour: 6 + 12, minute: "30", second: 0 },
+    { hour: 7 + 12, minute: "00", second: 0 },
+    { hour: 7 + 12, minute: "30", second: 0 },
+    { hour: 8 + 12, minute: "00", second: 0 },
+    { hour: 8 + 12, minute: "30", second: 0 },
+  ];
+
   const script =
     targetTime?.isValid && targetTimezone
       ? `$(countdown ${targetTime.toFormat(
@@ -193,7 +204,7 @@ function App() {
           </Toolbar>
         </AppBar>
         <Container component="main" maxWidth="sm" sx={{ mt: 2 }}>
-          <Grid container spacing={3}>
+          <Grid container spacing={1}>
             {/* ----- */}
             <Grid item xs={12} sm={6}>
               <Autocomplete
@@ -244,6 +255,27 @@ function App() {
                   );
                 })}
               </ButtonGroup>
+              <ButtonGroup fullWidth>
+                {TIME_HOTKEYS.map((obj) => {
+                  const { hour: hr, minute: min } = DateTime.fromObject(obj);
+                  return (
+                    <Button
+                      key={`${obj.hour}${obj.minute}`}
+                      variant={
+                        targetTime.hour === hr && targetTime.minute === min
+                          ? "contained"
+                          : "outlined"
+                      }
+                      onClick={() => {
+                        console.log(obj);
+                        setTargetTime(targetTime.set(obj));
+                      }}
+                    >
+                      {DateTime.fromObject(obj).toFormat("h:mm")}
+                    </Button>
+                  );
+                })}
+              </ButtonGroup>
             </Grid>
             <Grid item xs={12}>
               <Typography variant="h6" component="h2">
@@ -254,6 +286,7 @@ function App() {
               <TextField
                 label="stream command"
                 id="command"
+                size="small"
                 fullWidth
                 value={cmd}
                 onChange={(e) => setCmd(e.target.value)}
@@ -268,6 +301,7 @@ function App() {
                     onChange={(e) => setNewCmd(e.target.checked)}
                   />
                 }
+                labelPlacement="start"
                 label="addcom?"
               />
             </Grid>
@@ -305,11 +339,17 @@ function App() {
                 />
               </Box>
             </Grid>
-            <Grid item xs={12}>
+            <Grid item xs={6}>
               <Typography variant="h6" component="h2">
                 Preview:
+                <Button
+                  onClick={() => navigator.clipboard.writeText(fullOutput)}
+                >
+                  <ContentCopyIcon />
+                </Button>
               </Typography>
             </Grid>
+            <Grid item xs={6} alignContent="right"></Grid>
             <Grid item xs={12}>
               <Typography>
                 <strong>You:</strong> <em>{fullOutput}</em>
