@@ -47,7 +47,6 @@ function formatCountdown(dur) {
   const ago = Math.round(dur.valueOf() / 1000) < 0;
 
   let str = units.reduce((str, unit) => {
-    console.log(unit, str);
     if (!dur[unit]) return str;
     const qty = `${Math.abs(Math.round(dur[unit]))}`;
     const u = dur[unit] === 1 ? singular(unit) : unit;
@@ -132,10 +131,8 @@ export function useText() {
 export function findNextWeekday(target /* : (1 | 2 | 3 | 4 | 5 | 6 | 7) */) {
   const now = DateTime.now();
   const currWeekday = now.weekday;
-  console.log(target, currWeekday);
   const offset =
     currWeekday <= target ? target - currWeekday : target - currWeekday + 7;
-  console.log(offset);
   return now.plus({ day: offset });
 }
 
@@ -257,7 +254,6 @@ function App() {
                           : "outlined"
                       }
                       onClick={() => {
-                        console.log(obj);
                         setTargetTime(targetTime.set(obj));
                       }}
                     >
