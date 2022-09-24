@@ -2,6 +2,7 @@
   "name": "nightbot-countdown-generator",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://gnawg.github.io/nightbot-countdown-generator/",
   "dependencies": {
     "@emotion/react": "^11.10.4",
     "@emotion/styled": "^11.10.4",
