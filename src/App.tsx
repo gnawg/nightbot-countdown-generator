@@ -15,19 +15,10 @@ import {
   Typography,
   Button,
 } from "@mui/material";
-import { green, purple } from "@mui/material/colors";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
 import { AdapterLuxon } from "@mui/x-date-pickers/AdapterLuxon";
 import React, { useEffect, useState } from "react";
-import {
-  DateTime,
-  Zone,
-  SystemZone,
-  Duration,
-  Settings,
-  Interval,
-  Info,
-} from "luxon";
+import { DateTime, SystemZone, Settings, Info } from "luxon";
 import { Timezones } from "./constants";
 import RestoreIcon from "@mui/icons-material/Restore";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
