@@ -10,8 +10,11 @@ import {
   Grid,
   Switch,
   TextField,
+  ToggleButton,
+  ButtonGroup,
   Toolbar,
   Typography,
+  Button,
 } from "@mui/material";
 import { green, purple } from "@mui/material/colors";
 import { DateTimePicker, LocalizationProvider } from "@mui/x-date-pickers";
@@ -24,10 +27,11 @@ import {
   Duration,
   Settings,
   Interval,
-  Info
+  Info,
 } from "luxon";
 import { Timezones } from "./constants";
 import RestoreIcon from "@mui/icons-material/Restore";
+import ContentCopyIcon from "@mui/icons-material/";
 
 const theme = createTheme({
   /*   palette: {
@@ -49,6 +53,7 @@ function singular(str) {
 }
 
 function formatCountdown(dur) {
+  if (!dur) return ``;
   const ago = Math.round(dur.valueOf() / 1000) < 0;
 
   let str = units.reduce((str, unit) => {
@@ -63,33 +68,39 @@ function formatCountdown(dur) {
   return `${str}${ago ? " ago" : ""}`;
 }
 
-export function useTime(time = DateTime.now(), tz = localStorage.timezone || SYSZONE) {
-  const [targetTime, setTargetTime] = useState(time);
+export function useTime() {
+  const tz = localStorage.timezone || SYSZONE;
   const [targetTimezone, setTargetTimezone] = useState(tz);
+  const [targetTime, setTargetTime] = useState(DateTime.now().setZone(tz));
 
   useEffect(() => {
-    setTargetTime(targetTime.setZone(targetTimezone));
+    setTargetTime(targetTime?.setZone(targetTimezone));
     localStorage.timezone = targetTimezone;
     Settings.defaultZone = targetTimezone;
-  }, [targetTime, targetTimezone]);
+  }, [targetTimezone]);
 
-  function handleSetTime(time){
-    if(time.isValid) setTargetTime(time)
+  function handleSetTime(time) {
+    if (time && time.isValid) setTargetTime(time);
   }
-  function handleSetTimezone(tz){
-    if(Info.normalizeZone(tz).isValid) setTargetTimezone(tz)
+  function handleSetTimezone(tz) {
+    if (tz && Info.normalizeZone(tz).isValid) setTargetTimezone(tz);
   }
 
-  return { targetTime, setTargetTime: handleSetTime, targetTimezone, setTargetTimezone: handleSetTimezone };
+  return {
+    targetTime,
+    setTargetTime,
+    targetTimezone,
+    setTargetTimezone: handleSetTimezone,
+  };
 }
 
 export function useCountdown(dt) {
   const [duration, setDuration] = useState(DateTime.now().diffNow(units));
 
   useEffect(() => {
-    setDuration(dt.diffNow(units)); //update immediately
+    setDuration(dt?.diffNow(units)); //update immediately
 
-    const intervalId = setInterval(() => setDuration(dt.diffNow(units)), 1000); // also update once a second
+    const intervalId = setInterval(() => setDuration(dt?.diffNow(units)), 1000); // also update once a second
     return () => clearInterval(intervalId);
   }, [dt]);
 
@@ -98,42 +109,78 @@ export function useCountdown(dt) {
 
 export function useText() {
   const [cmd, setCmd] = useState(localStorage.cmd || "");
-  const [pretext, setPretext] = useState(localStorage.pretext || "");
-  const [posttext, setPosttext] = useState(localStorage.posttext || "");
-  const [newCmd, setNewCmd] = useState(localStorage.newCmd==='true')
+  const [pretext, setPretext] = useState(
+    localStorage.pretext ||
+      "Can't you read? You think I'm some kind of time servant that will tell you the next scheduled stream is in "
+  );
+  const [posttext, setPosttext] = useState(localStorage.posttext || "?");
+  const [newCmd, setNewCmd] = useState(localStorage.newCmd === "true");
 
-  useEffect(()=>{
-    localStorage.cmd = cmd
-  }, [cmd])
-  useEffect(()=>{
-    localStorage.pretext = pretext
-  }, [pretext])
-  useEffect(()=>{
-    localStorage.posttext = posttext
-  }, [posttext])
-  useEffect(()=>{
-    console.log(localStorage)
-    localStorage.newCmd = newCmd
-  }, [newCmd])
+  useEffect(() => {
+    localStorage.cmd = cmd;
+  }, [cmd]);
+  useEffect(() => {
+    localStorage.pretext = pretext;
+  }, [pretext]);
+  useEffect(() => {
+    localStorage.posttext = posttext;
+  }, [posttext]);
+  useEffect(() => {
+    localStorage.newCmd = newCmd;
+  }, [newCmd]);
 
-  return {cmd, setCmd, pretext, setPretext, posttext, setPosttext, newCmd, setNewCmd}
+  return {
+    cmd,
+    setCmd,
+    pretext,
+    setPretext,
+    posttext,
+    setPosttext,
+    newCmd,
+    setNewCmd,
+  };
+}
+
+export function findNextWeekday(target /* : (1 | 2 | 3 | 4 | 5 | 6 | 7) */) {
+  const now = DateTime.now();
+  const currWeekday = now.weekday;
+  console.log(target, currWeekday);
+  const offset =
+    currWeekday <= target ? target - currWeekday : target - currWeekday + 7;
+  console.log(offset);
+  return now.plus({ day: offset });
 }
 
 function App() {
   const { targetTime, setTargetTime, targetTimezone, setTargetTimezone } =
     useTime();
-  const {cmd, setCmd, pretext, setPretext, posttext, setPosttext, newCmd, setNewCmd} = useText()
-
+  const {
+    cmd,
+    setCmd,
+    pretext,
+    setPretext,
+    posttext,
+    setPosttext,
+    newCmd,
+    setNewCmd,
+  } = useText();
   const [duration] = useCountdown(targetTime);
 
-  const script = targetTime.isValid && targetTimezone
-  ? `$(countdown ${targetTime.toFormat(
-      // $(countdown Dec 25 2015 12:00:00 AM EST)
-      "MMM dd yyyy hh:mm:ss a"
-    )} ${targetTimezone})`
-  : "invalid!!"
+  const weekdayIndices = [0, 1, 2, 3, 4, 5, 6].map(
+    (num) => (DateTime.now().weekday + num - 1) % 7
+  );
 
-  const fullOutput = `!commands ${newCmd ? 'add' : 'edit'} ${pretext} ${script} ${posttext}`
+  const script =
+    targetTime?.isValid && targetTimezone
+      ? `$(countdown ${targetTime.toFormat(
+          // $(countdown Dec 25 2015 12:00:00 AM EST)
+          "MMM dd yyyy hh:mm:ss a"
+        )} ${targetTimezone})`
+      : "invalid!!";
+
+  const fullOutput = `!commands ${newCmd ? "add" : "edit"} ${cmd} ${
+    pretext + script + posttext
+  }`;
 
   return (
     <ThemeProvider theme={theme}>
@@ -151,7 +198,6 @@ function App() {
             {/* ----- */}
             <Grid item xs={12} sm={6}>
               <Autocomplete
-                disablePortal
                 id="timezone-select"
                 options={Timezones}
                 defaultValue={targetTimezone}
@@ -162,141 +208,122 @@ function App() {
                 onChange={(e, val) => {
                   setTargetTimezone(val || SYSZONE);
                 }}
-                clearIcon= <RestoreIcon />
-                clearText= "Reset to System"
+                clearIcon={<RestoreIcon />}
+                clearText="Reset to System"
               />
             </Grid>
             <Grid item xs={12} sm={6}>
               <DateTimePicker
-                renderInput={(props) => <TextField {...props} />}
-                label="DateTimePicker"
+                renderInput={(props) => <TextField fullWidth {...props} />}
+                label="Date & Time"
                 value={targetTime}
+                disableMaskedInput
                 onChange={(newValue) => {
                   setTargetTime(newValue);
                 }}
-                onError={(e, val) => {
-                  console.log(val);
-                }}
+                inputFormat="MM/dd/yy h:mm:ss a"
               />
             </Grid>
-
-            <Grid item xs={12}><Typography variant='h6' component='h2'>Config</Typography></Grid>
+            <Grid item xs={12}>
+              <ButtonGroup fullWidth>
+                {weekdayIndices.map((i) => {
+                  return (
+                    <Button
+                      key={i}
+                      onClick={() => {
+                        const { year, month, day } = findNextWeekday(
+                          i + 1
+                        ).toObject();
+                        setTargetTime(targetTime.set({ year, month, day }));
+                      }}
+                    >
+                      {Info.weekdays("short")[i]}
+                    </Button>
+                  );
+                })}
+              </ButtonGroup>
+            </Grid>
+            <Grid item xs={12}>
+              <Typography variant="h6" component="h2">
+                Config
+              </Typography>
+            </Grid>
             <Grid item xs={8}>
               <TextField
-
-              label="stream command"
-              id="command"
-              fullWidth
-              value={cmd}
-              onChange={(e)=>setCmd(e.target.value)}
-              />
-              </Grid>
-              <Grid item xs={4}>
-              <FormControlLabel control={<Switch disabled={!cmd} checked={newCmd} onChange={(e)=>setNewCmd(e.target.checked)} />} label="New?" />
-              </Grid>
-
-              <Grid item xs={12}>
-              <TextField
-              id="pretext"
-              label="Pre-countdown text"
-              fullWidth
-              multiline
-              value={pretext}
-              onChange={(e)=>setPretext(e.target.value)}
-              />
-              </Grid>
-
-              <Grid item xs={12}>
-              <TextField
+                label="stream command"
+                id="command"
                 fullWidth
-                required
-                disabled
-                variant="outlined"
-                id="script"
-                label="Countdown script"
-                value={
-                  script
+                value={cmd}
+                onChange={(e) => setCmd(e.target.value)}
+              />
+            </Grid>
+            <Grid item xs={4}>
+              <FormControlLabel
+                control={
+                  <Switch
+                    disabled={!cmd}
+                    checked={newCmd}
+                    onChange={(e) => setNewCmd(e.target.checked)}
+                  />
                 }
+                label="addcom?"
               />
             </Grid>
 
-              <Grid item xs={12}>
-              <TextField
-              id="posttext"
-              label="Post-countdown text"
-              fullWidth
-              multiline
-              value={posttext}
-              onChange={(e)=>setPosttext(e.target.value)}
-              />
-              </Grid>
-
-              <Grid item xs={12}><Typography variant='h6' component='h2'>Preview:</Typography></Grid>
             <Grid item xs={12}>
-              <Typography><strong>You:</strong> <em>{fullOutput}</em></Typography>
+              <Box>
+                <TextField
+                  id="pretext"
+                  label="Pre-countdown text"
+                  fullWidth
+                  multiline
+                  variant="standard"
+                  sx={{ border: 0 }}
+                  value={pretext}
+                  onChange={(e) => setPretext(e.target.value)}
+                />
+
+                <TextField
+                  fullWidth
+                  disabled
+                  variant="standard"
+                  id="script"
+                  label="Countdown script"
+                  value={script}
+                />
+
+                <TextField
+                  id="posttext"
+                  label="Post-countdown text"
+                  fullWidth
+                  multiline
+                  variant="standard"
+                  value={posttext}
+                  onChange={(e) => setPosttext(e.target.value)}
+                />
+              </Box>
             </Grid>
             <Grid item xs={12}>
-              <Typography><strong>Hapless Viewer:</strong> {cmd}</Typography>
+              <Typography variant="h6" component="h2">
+                Preview:
+              </Typography>
             </Grid>
             <Grid item xs={12}>
               <Typography>
-                <strong>Nightbot:</strong> {pretext} {formatCountdown(duration)} {posttext}
+                <strong>You:</strong> <em>{fullOutput}</em>
               </Typography>
             </Grid>
-            {/* etc */}
-            {/*
             <Grid item xs={12}>
-              <TextField
-                id="address2"
-                name="address2"
-                label="Address line 2"
-                fullWidth
-                autoComplete="shipping address-line2"
-                variant="standard"
-              />
+              <Typography>
+                <strong>Hapless Viewer:</strong> {cmd}
+              </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                id="city"
-                name="city"
-                label="City"
-                fullWidth
-                autoComplete="shipping address-level2"
-                variant="standard"
-              />
+            <Grid item xs={12}>
+              <Typography>
+                <strong>Nightbot:</strong> {pretext} {formatCountdown(duration)}
+                {posttext}
+              </Typography>
             </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                id="state"
-                name="state"
-                label="State/Province/Region"
-                fullWidth
-                variant="standard"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                id="zip"
-                name="zip"
-                label="Zip / Postal code"
-                fullWidth
-                autoComplete="shipping postal-code"
-                variant="standard"
-              />
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <TextField
-                required
-                id="country"
-                name="country"
-                label="Country"
-                fullWidth
-                autoComplete="shipping country"
-                variant="standard"
-              />
-            </Grid> */}
           </Grid>
         </Container>
       </LocalizationProvider>
