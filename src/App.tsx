@@ -176,8 +176,7 @@ function App() {
 
   const fullOutput = `!commands ${
     newCmd ? "add" : "edit"
-  } ${cmd} ${pretext}${script}${posttext}
-  }`;
+  } ${cmd} ${pretext}${script}${posttext}`;
 
   return (
     <ThemeProvider theme={theme}>
